@@ -3,6 +3,12 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Calendar;
 
+/*
+    In practice, this class will have an object that will be referenced by a static variable in the Server class
+
+*/
+
+
 public class PrivateCodeManager extends Thread {
     private Hashtable<String, Client> MAP;
     private long MIN_TIME_TO_EXPIRY;
@@ -20,8 +26,8 @@ public class PrivateCodeManager extends Thread {
     public boolean exists(String code) {
         return this.MAP.containsKey(code);
     }
-
-    public synchronized void add(String code, String message, Socket soc, int timeout) { //timeout is in minutes
+ 
+    public synchronized void add(String code, String message, Socket soc, int role, int timeout) { //timeout is in minutes
         if (this.MAP.containsKey(code)) {
             throw new MapKeyException("Private code:" + code + " already exists");
         }
@@ -32,20 +38,25 @@ public class PrivateCodeManager extends Thread {
         else{
             timeout = timeout*60*1000;
         }
-        this.MAP.put(code, new Client(message, soc, timeout));
+        this.MAP.put(code, new Client(message, soc, role, timeout));
 
         this.notify(); // notify the PrivateCodeManagerThread which is removing expired clients
         this.logString += "";
     }
-
-    public synchronized String remove(String code) {
+ 
+    public synchronized Client extract(String code, boolean retain) {
         if (!this.MAP.containsKey(code)) {
             throw new MapKeyException("Private code:" + code + " does not exist");
         }
-        String message = this.MAP.get(code).getMessage();
+        Client client = this.MAP.get(code);
+        if (!retain)
         this.MAP.remove(code);
-        return message;
+        
+        return client;
+        
     }
+
+    
 
     private synchronized void checkExpiredClients() {
         // Extract the collections from view method. Get iterator of the collections
@@ -85,6 +96,7 @@ class Client{
     private String MESSAGE;
     private Socket SOC;
     private Calendar EXPIRY;
+    private int ROLE;
     /*
     Client(String message, Socket socket){
         this.MESSAGE = message;
@@ -93,7 +105,8 @@ class Client{
         this.EXPIRY = Calendar.getInstance();
         this.EXPIRY.setTimeInMillis(time);
     }*/
-    Client(String message, Socket socket, int timeout){ //timeout is in milliseconds
+    Client(String message, Socket socket, int role, int timeout){ //timeout is in milliseconds
+        this.ROLE = role;
         this.MESSAGE = message;
         this.SOC = socket;
         long time = System.currentTimeMillis() + timeout;
@@ -108,6 +121,9 @@ class Client{
     }
     public long timeToExpiry(){
         return (this.EXPIRY.getTimeInMillis() - System.currentTimeMillis());
+    }
+    public int getRole(){
+        return this.ROLE;
     }
 }
 
