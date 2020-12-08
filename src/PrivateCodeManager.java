@@ -128,6 +128,10 @@ class Client{
 }
 
 class MapKeyException extends RuntimeException{
+    /**
+     *
+     */
+    private static final long serialVersionUID = 6139745786058684456L;
     private String MESSAGE;
     MapKeyException(String message){
         this.MESSAGE = message;
